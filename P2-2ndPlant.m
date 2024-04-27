@@ -1,9 +1,10 @@
 clear , clc, close all;
 
-%% Exercise 1 - (1st Plant) - R = 1
+
+%% Exercise 1 - (2nd Plant) - R = 1
 
 % Define system matrices
-A = 1.2;
+A = 0.8;
 B = 1;
 C = 1;
 
@@ -16,7 +17,7 @@ R = 1;
 
 eigenvalues = eig(A - B*K_LQ);
 
-%% Exercise 2 - (1st Plant) - R = 1
+%% Exercise 2 - (2nd Plant) - R = 1
 
 % Initialize horizon H values
 H_values = 1:30;
@@ -58,7 +59,7 @@ ylabel('Optimal Gain');
 legend('RH Gain', 'Optimal LQ Gain');
 title('Optimal LQ Gain vs RH 1st Gain (R = 1)');
 
-%% Exercise 3 - (1st Plant) - R = 1
+%% Exercise 3 - (2nd Plant) - R = 1
 
 figure;
 plot(H_values, RH_eigenvalues, 'b-o', 'LineWidth', 2);
@@ -71,10 +72,10 @@ title('Closed-Loop eigenvalues (R = 1)');
 
 
 
-%% Exercise 1 - (1st Plant) - R = 10
+%% Exercise 1 - (2nd Plant) - R = 10
 
 % Define system matrices
-A = 1.2;
+A = 0.8;
 B = 1;
 C = 1;
 
@@ -87,7 +88,7 @@ R = 10;
 
 eigenvalues = eig(A - B*K_LQ);
 
-%% Exercise 2 - (1st Plant) - R = 10
+%% Exercise 2 - (2nd Plant) - R = 10
 
 % Initialize horizon H values
 H_values = 1:30;
@@ -129,7 +130,7 @@ ylabel('Optimal Gain');
 legend('RH Gain', 'Optimal LQ Gain');
 title('Optimal LQ Gain vs RH 1st Gain (R = 10)');
 
-%% Exercise 3 - (1st Plant) - R = 10
+%% Exercise 3 - (2nd Plant) - R = 10
 
 figure;
 plot(H_values, RH_eigenvalues, 'b-o', 'LineWidth', 2);
@@ -140,10 +141,10 @@ xlabel('Horizon (H)');
 ylabel('Eigenvalues');
 title('Closed-Loop eigenvalues (R = 10)');
 
-%% Exercise 1 - (1st Plant) - R = 100
+%% Exercise 1 - (2nd Plant) - R = 100
 
 % Define system matrices
-A = 1.2;
+A = 0.8;
 B = 1;
 C = 1;
 
@@ -156,7 +157,7 @@ R = 100;
 
 eigenvalues = eig(A - B*K_LQ);
 
-%% Exercise 2 - (1st Plant) - R = 100
+%% Exercise 2 - (2nd Plant) - R = 100
 
 % Initialize horizon H values
 H_values = 1:30;
@@ -198,7 +199,7 @@ ylabel('Optimal Gain');
 legend('RH Gain', 'Optimal LQ Gain');
 title('Optimal LQ Gain vs RH 1st Gain (R = 100)');
 
-%% Exercise 3 - (1st Plant) - R = 100
+%% Exercise 3 - (2nd Plant) - R = 100
 
 figure;
 plot(H_values, RH_eigenvalues, 'b-o', 'LineWidth', 2);
