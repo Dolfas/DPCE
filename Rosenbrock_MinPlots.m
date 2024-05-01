@@ -3,15 +3,14 @@ clc, clear all
 
 x0=[-1; 1];  %Intial estimate
 options = optimoptions('fminunc','Algorithm','quasi-newton');
-xopt=fminunc(@Rosenbrock_function,x0,options);
+xopt=fminunc(@Rosenbrock_function,x0,options)
 
 %% Compute the constrained minimum
 
 x0=[-1; 1];  %Intial estimate
 A = [1, 0];  %Constrain
 B = 0.5; 
-xoptconstr=fmincon(@Rosenbrock_function,x0,A,B);
-
+xoptconstr=fmincon(@Rosenbrock_function,x0,A,B)
 
 %% Plots 
 % Range of independent variables to consider 
@@ -58,8 +57,8 @@ set(gg,'Linewidth',1.5);
 
 % z1c=[-2:0.1:0.5];
 % z2c=[2:-0.1:0.5];
- gg = xline(0.5,'k');
- set(gg,'Linewidth',1.5);
+gg = xline(0.5,'k');
+set(gg,'Linewidth',1.5);
 
 % Identifies axis
 gg=xlabel('x_1');
@@ -67,6 +66,12 @@ set(gg,'FontSize',14);
 
 gg=ylabel('x_2');
 set(gg,'FontSize',14);
+
+gg = title('Level lines of the Rosenbrock function');
+set(gg,'FontSize',14);
+
+gg = legend('Level lines','Initial Estimate', 'Unconstrained Minimum', 'Constrained Minimum');
+
 
 hold off
 
@@ -82,4 +87,7 @@ gg=ylabel('x_2');
 set(gg,'FontSize',14);
 
 gg=zlabel('f(x)');
+set(gg,'FontSize',14);
+
+gg = title('Rosenbrock Function');
 set(gg,'FontSize',14);
