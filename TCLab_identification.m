@@ -37,7 +37,7 @@ Dy = y - y_ss;
 Du = u - u_ss;
 
 % Identify state-space system for incremental dynamics
-n = 5;
+n = 10;
 Ts = t(2) - t(1);
 Du = Du(:,1:1399);
 sys = ssest(Du',Dy',n,'Ts',Ts);
