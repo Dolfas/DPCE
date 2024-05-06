@@ -37,9 +37,8 @@ Dy = y - y_ss;
 Du = u - u_ss;
 
 % Identify state-space system for incremental dynamics
-n = 10;
+n = 9;
 Ts = t(2) - t(1);
-Du = Du(:,1:1399);
 sys = ssest(Du',Dy',n,'Ts',Ts);
 [A,B,C,~,Ke] = idssdata(sys);
 e_var = sys.NoiseVariance;
@@ -69,8 +68,8 @@ end
 figure('Units','normalized','Position',[0.2 0.5 0.3 0.4]);
 subplot(2,1,1), hold on, grid on   
 title(sprintf('Model performance (n=%d) on identification dataset',n))
-plot(t,Dy,'.','MarkerSize',5)
-plot(t,Dy_sim,'g--')
+plot(t,Dy,'.','MarkerSize',4)
+plot(t,Dy_sim,'r-')
 xlabel('Time [s]')
 ylabel('\Delta y [°C]')
 xlim([t(1),t(end)]);
@@ -100,7 +99,6 @@ Du2 = u - u_ss;
 N = length(t);
 Dy2_sim = nan(1,N);
 Dx2_sim = nan(n,N);
-Du2 = Du2(:,1:200);
 % Find initial incremental state that best fits the data given the identified model
 Dx02 = findstates(sys,iddata(Dy2',Du2',Ts));
 
@@ -118,8 +116,8 @@ end
 figure('Units','normalized','Position',[0.5 0.5 0.3 0.4])
 subplot(2,1,1), hold on, grid on   
 title(sprintf('Model performance (n=%d) on validation dataset',n))
-plot(t,Dy2,'.','MarkerSize',5)
-plot(t,Dy2_sim,'g--')
+plot(t,Dy2,'.','MarkerSize',4)
+plot(t,Dy2_sim,'r-')
 xlabel('Time [s]')
 ylabel('\Delta{y} [°C]')
 xlim([t(1),t(end)]);
