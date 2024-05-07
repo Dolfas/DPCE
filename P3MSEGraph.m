@@ -7,21 +7,26 @@ MSE_total = [MSE1;MSE2];
 % Plot results
 b = bar(n,MSE_total)
 
+% Log scale
+%set(gca,'YScale','log');
+
 xtips1 = b(1).XEndPoints;
 ytips1 = b(1).YEndPoints;
 labels1 = string(round(b(1).YData,2));
 text(xtips1,ytips1,labels1,'HorizontalAlignment','center',...
-    'VerticalAlignment','bottom')
+    'VerticalAlignment','bottom', 'FontWeight','bold')
 
 xtips2 = b(2).XEndPoints;
 ytips2 = b(2).YEndPoints;
 labels2 = string(round(b(2).YData,2));
 text(xtips2,ytips2,labels2,'HorizontalAlignment','center',...
-    'VerticalAlignment','bottom')
+    'VerticalAlignment','bottom', 'FontWeight', 'bold')
 
 
-title('MSE resaults varying State Dimension')
-xlabel('State Dimension')
-ylabel('MSE')
-legend('Dataset1','Dataset2')
+title('MSE resaults varying State Dimension', 'FontWeight', 'bold')
+xlabel('State Dimension', 'FontWeight', 'bold')
+ylabel('MSE', 'FontWeight', 'bold')
+lgd = legend('Dataset1','Dataset2')
+set(lgd,'FontSize',18);
+set(lgd,'FontWeight','bold');
 grid on;
