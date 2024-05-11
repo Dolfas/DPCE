@@ -69,7 +69,8 @@ xlabel('Horizon (H)');
 ylabel('Eigenvalues');
 title('Closed-Loop eigenvalues (R = 1)');
 
-
+figure;
+zplane([], RH_eigenvalues'), grid on
 
 %% Exercise 1 - (1st Plant) - R = 10
 
@@ -140,6 +141,9 @@ xlabel('Horizon (H)');
 ylabel('Eigenvalues');
 title('Closed-Loop eigenvalues (R = 10)');
 
+figure;
+zplane([], RH_eigenvalues'), grid on
+
 %% Exercise 1 - (1st Plant) - R = 100
 
 % Define system matrices
@@ -208,3 +212,7 @@ yline(1, 'r--', 'LineWidth', 2);
 xlabel('Horizon (H)');
 ylabel('Eigenvalues');
 title('Closed-Loop eigenvalues (R = 100)');
+
+figure;
+zplane([], RH_eigenvalues'), grid on
+
