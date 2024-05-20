@@ -39,9 +39,9 @@ Dx_ref = pinv(C) * Dref;
 Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
 
 % Define parameters
-H = 10;   % Prediction horizon
-R = 0.01;    % Control weight
-alpha = 100;
+H = 100;   % Prediction horizon
+R = 0.1;    % Control weight
+alpha = 1000;
 eta = Dref;
 
 % Initial condition
@@ -166,7 +166,7 @@ function [u0, eta] = mpc_solve(x0, H, R, alpha, A, B, C, y_ss, eta, iter)
         disp('Constrained optimization successful.');
     else
         disp('Constrained optimization failed.');
-        [z, ~, ~] = quadprog(F, f, [], [], Aeq, beq, lb, ub, x0, options);
+        [z, ~, ~] = quadprog(F, f, [], [], [], [], lb, ub, x0, options);
     end
 
     % Extract optimal control action and slack variables
