@@ -18,8 +18,9 @@ e_std = 0;
 x_ss = [eye(n)-A; C]\[B*u_ss; y_ss];
 c1 = ((eye(n)-A)*x_ss - B*u_ss);
 c2 = (y_ss - C*x_ss);
-c1 = 0;
-c2 = 0;
+%c1 = 0;
+c1 = c1 + 0.1*c1;
+%c2 = 0;
 h1 = @(x,u) A*x + B*u + Ke*e_std*randn + c1; % apply control
 T1C = @(x) C*x + e_std*randn + c2; % read temperature
 
