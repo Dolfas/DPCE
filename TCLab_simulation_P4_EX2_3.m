@@ -29,8 +29,8 @@ Dx0Dy0 = [eye(n)-A, zeros(n,1); C, -1]\[-B*u_ss; 0];
 Dx0 = Dx0Dy0(1:n);
 
 % Define parameters
-H = 100;   % Prediction horizon
-R = 0.1;    % Control weight
+H = 20;   % Prediction horizon
+R = 0.01;    % Control weight
 
 % Initial condition
 x0 = Dx0 + x_ss;
@@ -60,12 +60,12 @@ for k = 1:N - 1
     Du(:, k) = u - u_ss;
     
     % Apply control action to the plant
-    Dx(:, k+1) = h1(Dx(:, k), Du(:, k));
-    x_mpc(:, k+1) = Dx(:, k+1) + x_ss;
+    x_mpc(:, k+1) = h1(x_mpc(:, k), u_mpc(k));
+    Dx(:, k+1) = x_mpc(:, k+1) - x_ss;
     
     % Compute output y based on updated state x_mpc
-    Dy(:, k+1) = T1C(Dx(:, k+1));
-    y_mpc(k) = Dy(:, k) + y_ss;
+    y_mpc(k) = T1C(x_mpc(:, k+1));
+    Dy(:, k+1) = y_mpc(k) - y_ss;
 
     % Update initial condition for next iteration
     x0 = x_mpc(:, k+1);
