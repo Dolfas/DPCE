@@ -1,10 +1,9 @@
-
-% Initialization
+%% Initialization
 clear
 close all
 clc
 
-% Exercise 2: Implement closed-loop MPC controller (P4)
+%% Exercises 2 and 3: Implement closed-loop MPC controller (P4)
 
 % Load model
 MODEL = load('singleheater_model.mat');
@@ -125,7 +124,11 @@ function u0 = mpc_solve(x0, H, R, A, B, C, y_ss)
     f =  2 * (x0' * Pi' * W - y_ref * W); % Makes y tend to y_ss
     Aineq = []; bineq = [];
     Aeq = []; beq = [];
-    lb = ones(H, 1) * (0); ub = ones(H, 1)*(100);
+
+    lb = ones(H, 1) * (0); ub = ones(H, 1)*(100); %Constraint on the control action
+    
+    % lb=[]; ub = []; %No constraint
+    
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
