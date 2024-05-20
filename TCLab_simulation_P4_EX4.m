@@ -1,10 +1,9 @@
-
-% Initialization
+%% Initialization
 clear
 close all
 clc
 
-% Exercise 2: Implement closed-loop MPC controller (P4)
+%% Exercise 4: 
 
 % Load model
 MODEL = load('singleheater_model.mat');
