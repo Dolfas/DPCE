@@ -1,10 +1,9 @@
-
 % Initialization
 clear
 close all
 clc
 
-% Exercise 2: Implement closed-loop MPC controller (P4)
+%% Exercise 2: Implement closed-loop MPC controller (P4)
 
 % Load model
 MODEL = load('singleheater_model.mat');
@@ -17,11 +16,12 @@ e_std = sqrt(e_var); % input disturbance standard deviation
 x_ss = [eye(n)-A; C]\[B*u_ss; y_ss];
 c1 = ((eye(n)-A)*x_ss - B*u_ss);
 c2 = (y_ss - C*x_ss);
+
 h1 = @(x,u) A*x + B*u + Ke*e_std*randn + c1; % apply control
 T1C = @(x) C*x + e_std*randn + c2; % read temperature
 
 % Simulation parameters
-T = 4000; % Experiment duration [s]
+T = 2000; % Experiment duration [s]
 N = T/Ts; % Number of samples to collect
 
 % Initial conditions (start at ambient temperature, i.e. equilibrium for u = 0)
@@ -29,8 +29,8 @@ Dx0Dy0 = [eye(n)-A, zeros(n,1); C, -1]\[-B*u_ss; 0];
 Dx0 = Dx0Dy0(1:n);
 
 % Define parameters
-H = 100;   % Prediction horizon
-R = 0.3;    % Control weight
+H = 20;   % Prediction horizon
+R = 0.01;    % Control weight
 
 % Initial condition
 x0 = Dx0 + x_ss;
@@ -42,28 +42,38 @@ x_mpc(:, 1) = x0;
 
 % Initialize arrays to store output y
 y_mpc = zeros(1, N - 1);
+y_mpc(:, 1) = T1C(x0);
 
 t = nan(1, N);
 Dy = nan(1, N);
 Du = nan(1, N);
+Dx = nan(n, N);
 
+Dx(:,1) = x_mpc(:, 1) - x_ss;
+Dy(:,1) = y_mpc(:, 1) - y_ss;
+
+z0 = zeros(209,1);
 % Main loop for MPC control
 for k = 1:N - 1 
     % Solve MPC problem
-    u = mpc_solve(x0, H, R, A, B, C, y_ss);
+    z = mpc_solve(x0, H, R, A, B, C, y_ss);
+    Du(:,k) = z(190);
+    u_mpc(k) = Du(:,k) + u_ss;
+
+    % u_mpc(k) = u;
+    % Du(:, k) = u - u_ss;
     
     % Apply control action to the plant
-    u_mpc(k) = u;
-    x_mpc(:, k+1) = h1(x_mpc(:, k), u);
+    x_mpc(:, k+1)  = h1(x_mpc(:, k), u_mpc(k));
+    Dx(:, k+1) = x_mpc(:, k+1) - x_ss;
     
     % Compute output y based on updated state x_mpc
     y_mpc(k) = T1C(x_mpc(:, k));
-
-    Dy(:,k) = y_mpc(:,k) - y_ss;
-    Du(:,k) = u_mpc(:,k) - u_ss;
+    Dy(:, k) = y_mpc(k) - y_ss ;
 
     % Update initial condition for next iteration
-    x0 = x_mpc(:, k+1);
+    x0 = Dx(:, k+1);
+    
     t(k) = (k-1)*Ts;
 end
 
@@ -99,36 +109,45 @@ yline(100-u_ss,'r--')
 xlabel('Time [s]')
 ylabel('\Delta{u} [%]')
 
-function u0 = mpc_solve(x0, H, R, A, B, C, y_ss)
-    % Compute weight matrices
-    % Q = transpose(C) * C;
+function z = mpc_solve(x0, H, R, A, B, C, ref)
+    % Compute the augmented matrices
+    Q = C' * C;
+    Q_aug = blkdiag(Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q);  % Important not to touch H 
+    Q_aug = [zeros(180,9),Q_aug];
+    Q_aug = [zeros(9,189);Q_aug;];
     
-    % Initialize matrices for MPC
-    W = zeros(H, H);
-    Pi = zeros(H, size(A, 1));
-    for j = 1:H
-        for k = 1:j
-            W(j, k) = C * A^(j-k) * B;
-        end
-        Pi(j, :) = (C * A^j);
-    end
-
-    % Compute optimal RH gain using quadprog
-    M = W' * W + R * eye(H);
-    F = 2 * M;
-    % f = 2 * x0' * Pi' * W; Makes y tend to zero
-    y_ref = ones(H, 1)*y_ss;
-    f = 2 * (x0' * Pi' * W - y_ref' * W); % Makes y tend to y_ss
+    R_aug = R*eye(H,H); 
+    
+    F = 2 .* blkdiag(Q_aug,R_aug);
+    f = zeros(209,1);
+    
+    A_aug = blkdiag(A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A);  
+    zero_column = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)]'.*0;
+    zero_row = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)].*0;
+    A_aug = [A_aug, zero_column];
+    A_aug = [zero_row; A_aug];
+    
+    B_aug = blkdiag(B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B);
+    B_aug_aux = zeros(9,20);
+    B_aug = [B_aug_aux;B_aug];
+    
+    E = [eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9)]';
+   
+    Aeq = [A_aug - eye(189,189)  B_aug];
+    beq = -E*x0;
     Aineq = []; bineq = [];
-    Aeq = []; beq = [];
-    lb = zeros(H, 1); ub = ones(H, 1)*100;
+
+    lb = zeros(209,1); ub = zeros(209,1);
+    lb(1:189,1) = -inf; ub(1:189,1)= inf;
+    lb(190:209,1)= 0; ub(190:209,1) = 70;  
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
+    [z, ~, ~] = quadprog(F, f, Aineq, bineq, Aeq, beq, lb, ub, [], options);
 
-    K_RH = quadprog(F, f, Aineq, bineq, Aeq, beq, lb, ub, x0, options);
-
-    % Extract first control action
-    u0 = K_RH(1);
-    fprintf('control input: %f ', u0);
+    % Extract optimal control action and slack variables
+    
+    
 end
+
+
