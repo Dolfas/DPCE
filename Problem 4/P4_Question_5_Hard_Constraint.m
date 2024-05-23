@@ -172,7 +172,7 @@ function z = mpc_solve(x0, H, R, A, B, C, ref)
 
     lb = zeros(209,1); ub = zeros(209,1);
     lb(1:189,1) = -inf; ub(1:189,1)= inf;
-    lb(190:209,1)= 0; ub(190:209,1) = 70;  
+    lb(190:209,1)= -30; ub(190:209,1) = 70;  
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');

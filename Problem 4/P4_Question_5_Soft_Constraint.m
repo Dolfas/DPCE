@@ -39,7 +39,7 @@ Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
 % Define parameters
 H = 20;   % Prediction horizon **DO NOT TOUCH**
 R = 0.01;    % Control weight
-alpha = 10;  %Alpha value for eta 
+alpha = 10000;  %Alpha value for eta 
 
 % Initial condition
 x0 = Dx0 + x_ss;
@@ -174,7 +174,7 @@ function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
 
     lb = zeros(209,1); ub = zeros(209,1);
     lb(1:189,1) = -inf; ub(1:189,1)= inf;
-    lb(190:209,1)= 0; ub(190:209,1) = 68 ; 
+    lb(190:209,1)= -30; ub(190:209,1) = 68 ; 
     lb(210:229,1)= 0; ub(210:229,1) = inf; % Constraint for eta
     
     % Set options to suppress quadprog output

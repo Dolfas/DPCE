@@ -32,7 +32,7 @@ Dx0Dy0 = [eye(n)-A, zeros(n,1); C, -1]\[-B*u_ss; 0];
 Dx0 = Dx0Dy0(1:n);
 
 % Define the reference
-Dref = 5;
+Dref = 10;
 ref = Dref + y_ss;
 
 Dx_ref = pinv(C) * Dref;
@@ -163,7 +163,7 @@ function z = mpc_solve(x0, H, R, A, B, C, ref)
 
     lb = zeros(209,1); ub = zeros(209,1);
     lb(1:189,1) = -inf; ub(1:189,1)= inf;
-    lb(190:209,1)= 0; ub(190:209,1) = 70;  
+    lb(190:209,1)= -30; ub(190:209,1) = 70;  
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
