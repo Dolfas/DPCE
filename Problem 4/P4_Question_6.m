@@ -103,23 +103,28 @@ for k = 1:N - 1
     
     % State prediction
     dx(:, k+1) = hd(dx(:, k), du(:, k));
-    Dx(:, k+1) = dx(1:end-1, k+1) + Dx_ref;
-    x_mpc(:, k+1) = Dx(:, k+1) + x_ss;
     
     % Compute output y based on prediction
     dy(:, k+1) = TdC(dx(:, k+1));
-    Dy(:, k+1) = dy(:, k+1) + Dref;
-    y_mpc(k+1) = Dy(:, k+1) + y_ss;
 
     % State correction
     dx(:, k+1) = dx(:, k+1) + L * (y(:, k+1) - dy(:, k+1));
+    Dx(:, k+1) = dx(1:end-1, k+1) + Dx_ref;
+    x_mpc(:, k+1) = Dx(:, k+1) + x_ss;
+
+    %recalculate output y
+    dy(:, k+1) = TdC(dx(:, k+1));
+    
+    Dy(:, k+1) = dy(:, k+1) + Dref;
+    y_mpc(k+1) = Dy(:, k+1) + y_ss;
+
     
     % Update initial condition for next iteration
     x0 = x_mpc(:, k+1);
     t(k) = (k-1)*Ts;
 end
 
-diferenca = y - dy;
+diferenca = y - y_mpc;
 
 % Plot results
 figure('Units','normalized','Position',[0.2 0.5 0.3 0.4])

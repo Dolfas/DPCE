@@ -53,7 +53,7 @@ Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
 eta = Dref;
 
 % Define parameters
-H = 25;   % Prediction horizon
+H = 20;   % Prediction horizon
 R = 0.01;    % Control weight
 alpha = 1e6;
 
@@ -115,13 +115,13 @@ for k = 1:N - 1
     % Simulate the real system with input from MPC
     x_sim(:,k+1) = h1(x_sim(:,k), u_mpc(k));
     y_sim(:, k+1) = T1C(x_sim(:,k+1));
+    dy_sim(:,k+1) = (y_sim(:, k+1)-ref);
 
     % Kalman Filter
         %prediction
     dx1e = hd(dx(:, k), du(:,k));                  %dx1e = prediction of dx(k+1) 
     dy1e = TdC(dx1e);                              %dy1e = prediction of dy(k+1) 
         %correction
-    dy_sim(:,k+1)=(y_sim(:, k+1)-ref);
     dx(:, k+1) = dx1e + L * (dy_sim(k+1) - dy1e);  %dx1c = correction of dx(k+1) 
     
     % Extra Info
@@ -244,7 +244,7 @@ function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
 
     lb = -inf*ones(H*(n+2)+n,1); ub = inf*ones(H*(n+2)+n,1);   
     lb(end-2*H+1:end-H,1)= -30; ub(end-2*H+1:end-H,1) = 68; 
-    lb(end-H+1:end-H,1)= 0; ub(end-H+1:end-H,1) = inf; % Constraint for eta
+    lb(end-H+1:end,1)= 0; ub(end-H+1:end,1) = inf; % Constraint for eta
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
