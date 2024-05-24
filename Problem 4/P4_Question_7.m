@@ -93,7 +93,7 @@ Dy(:,1) = y_mpc(:, 1) - y_ss;
 dy(:,1) = Dy(:,1) - Dref;
 
 y_sim(:,1) = 18.9149560117302;
-dy_sim(:, 1)= y_sim(:, 1) - ref;
+dy_sim(:, 1)= y_sim(:, 1) - ref + 8.5;
 
 % Compute optimal observer gain
 L = dlqe(Ad, eye(size(Ad, 1)), Cd, Qed, Re);
@@ -112,12 +112,12 @@ for k = 1:N - 1
     du(:,k) = z(n*(H+1)+1);                                              
     u_mpc(k) = du(:,k) + u_ss + Du_ref;
 
-    % Simulate the real system with input from MPC
+    % Simulate the real system with input from MPC (100%)
     x_sim(:,k+1) = h1(x_sim(:,k), u_mpc(k));
     y_sim(:, k+1) = T1C(x_sim(:,k+1));
     dy_sim(:,k+1) = (y_sim(:, k+1)-ref);
 
-    % Kalman Filter
+    % Kalman Filter (100% works)
         %prediction
     dx1e = hd(dx(:, k), du(:,k));                  %dx1e = prediction of dx(k+1) 
     dy1e = TdC(dx1e);                              %dy1e = prediction of dy(k+1) 
@@ -225,7 +225,7 @@ function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     Aeq = [Aeq, zeros(size(A_aug,1),H)]; % Change to Aeq
     beq = -E*x0;
 
-    g_aug = repmat(-7.85,H,1);
+    g_aug = zeros(H,1);
     G_aug = eye(H,H);
 
     for i = 1:H
