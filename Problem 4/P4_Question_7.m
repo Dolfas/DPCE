@@ -53,8 +53,8 @@ Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
 eta = Dref;
 
 % Define parameters
-H = 20;   % Prediction horizon
-R = 0.01;    % Control weight
+H = 30;   % Prediction horizon
+R = 0.1;    % Control weight
 alpha = 1e6;
 
 % Initial condition
