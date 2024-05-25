@@ -50,12 +50,11 @@ ref = ref_vec(1);
 Dref = ref - y_ss;
 Dx_ref = pinv(C) * Dref;
 Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
-eta = Dref;
 
 % Define parameters
 H = 30;   % Prediction horizon
-R = 0.1;    % Control weight
-alpha = 1e6;
+R = 0.01;    % Control weight
+alpha = 10;
 
 % Initial condition
 x0 = Dx0 + x_ss + randn(n, 1);
@@ -105,11 +104,10 @@ for k = 1:N - 1
     Dref = ref - y_ss;
     Dx_ref = pinv(C) * Dref;
     Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
-    eta = Dref;
-
+     
     % Solve MPC problem
-    z = mpc_solve(x0, H, R, A, B, C, ref,alpha);
-    du(:,k) = z(n*(H+1)+1);                                              
+    du0 = mpc_solve(x0, H, R, A, B, C, ref,alpha);
+    du(:,k) = du0;                                             
     u_mpc(k) = du(:,k) + u_ss + Du_ref;
 
     % Simulate the real system with input from MPC (100%)
@@ -176,7 +174,9 @@ plot(t,diferenca);
 xlabel('Time [s]');
 ylabel('error');
 
-function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
+function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
+
+    maxTemp = 55;
 
     n=size(A,1);
     % Compute the augmented matrices
@@ -225,7 +225,7 @@ function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     Aeq = [Aeq, zeros(size(A_aug,1),H)]; % Change to Aeq
     beq = -E*x0;
 
-    g_aug = zeros(H,1);
+    g_aug = repmat(min([maxTemp-ref,0]),H,1);
     G_aug = eye(H,H);
 
     for i = 1:H
@@ -257,5 +257,5 @@ function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     end
 
     % Extract optimal control action and slack variables
-
+    u0 = z(n*(H+1)+1); 
 end    

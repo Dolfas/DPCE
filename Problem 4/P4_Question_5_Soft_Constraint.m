@@ -39,7 +39,7 @@ Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
 % Define parameters
 H = 20;   % Prediction horizon **DO NOT TOUCH**
 R = 0.01;    % Control weight
-alpha = 10000;  %Alpha value for eta 
+alpha = 10;  %Alpha value for eta 
 
 % Initial condition
 x0 = Dx0 + x_ss;
@@ -77,8 +77,8 @@ z0(1:9,1) = dx(:,1);
 % Main loop for MPC control
 for k = 1:N - 1 
     % Solve MPC problem
-    z = mpc_solve(x0, H, R, A, B, C, ref,alpha);
-    du(:,k) = z(190);                                              
+    du0 = mpc_solve(x0, H, R, A, B, C, ref,alpha);
+    du(:,k) = du0;                                              
     u_mpc(k) = du(:,k) + u_ss +  Du_ref;
 
     % u_mpc(k) = u;
@@ -133,50 +133,78 @@ yline(100-u_ss,'r--')
 xlabel('Time [s]')
 ylabel('\delta{u} [%]')
 
-function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
+function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
+
+    maxTemp = 55;
+
+    n=size(A,1);
     % Compute the augmented matrices
-    
+
     Q = C' * C;
-    Q_aug = blkdiag(Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q);  % Important not to touch H 
-    Q_aug = [zeros(180,9),Q_aug];
-    Q_aug = [zeros(9,189);Q_aug;];
-    
+    for i = 1:H
+        if(i==1)
+            Q_aug=Q;
+        else
+            Q_aug=blkdiag(Q_aug,Q);
+        end
+    end
+    Q_aug = [zeros(size(Q_aug,1),n),Q_aug];
+    Q_aug = [zeros(n,size(Q_aug,2));Q_aug];
+
     R_aug = R*eye(H,H); 
-    
-    F = 2 .* blkdiag(Q_aug,R_aug,alpha*eye(20,20));
-    f = zeros(229,1);
-    
-    A_aug = blkdiag(A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A);  
+
+    F = 2 .* blkdiag(Q_aug,R_aug,alpha*eye(H,H));
+    f = zeros(size(F,2),1);
+
+    for i = 1:H
+        if(i==1)
+            A_aug=A;
+        else
+            A_aug=blkdiag(A_aug,A);
+        end
+    end
     zero_column = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)]'.*0;
     zero_row = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)].*0;
-    A_aug = [A_aug, zero_column];
-    A_aug = [zero_row; A_aug];
-    
-    B_aug = blkdiag(B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B);
-    B_aug_aux = zeros(9,20);
-    B_aug = [B_aug_aux;B_aug];
-    
+    A_aug = [A_aug, zeros(size(A_aug,1),n)];
+    A_aug = [zeros(n,size(A_aug,2)); A_aug];
+
+    for i = 1:H
+        if(i==1)
+            B_aug=B;
+        else
+            B_aug=blkdiag(B_aug,B);
+        end
+    end
+    B_aug = [zeros(n,size(B_aug,2));B_aug];
+
     E = [eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9)]';
-   
-    Aeq = [A_aug - eye(189,189)  B_aug];
-    Aeq = [Aeq, zeros(189,20)]; % Change to Aeq
+    E = [eye(n,n);zeros(H*n,n)];
+
+    Aeq = [A_aug - eye(size(A_aug,1),size(A_aug,2)), B_aug];
+    Aeq = [Aeq, zeros(size(A_aug,1),H)]; % Change to Aeq
     beq = -E*x0;
 
-    g_aug = repmat(-7.85,20,1);
-    G_aug = eye(20,20);
-    C_aug = blkdiag(C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C,C);
-    C_aug = [C_aug, zeros(20,9)];
+    g_aug = repmat(min([maxTemp-ref,0]),H,1);
+    G_aug = eye(H,H);
+
+    for i = 1:H
+        if(i==1)
+            C_aug=C;
+        else
+            C_aug=blkdiag(C_aug,C);
+        end
+    end
+    C_aug = [C_aug, zeros(size(C_aug,1),n)];
 
 
 
-    Aineq = [G_aug*C_aug, zeros(20,20), -eye(20,20)];
+    Aineq = [G_aug*C_aug, zeros(H,H), -eye(H,H)];
     bineq = g_aug; 
 
-    lb = zeros(209,1); ub = zeros(209,1);
-    lb(1:189,1) = -inf; ub(1:189,1)= inf;
-    lb(190:209,1)= -30; ub(190:209,1) = 68 ; 
-    lb(210:229,1)= 0; ub(210:229,1) = inf; % Constraint for eta
-    
+    lb = -inf*ones(H*(n+2)+n,1); ub = inf*ones(H*(n+2)+n,1);   
+    lb(end-2*H+1:end-H,1)= -30; ub(end-2*H+1:end-H,1) = 68; 
+    lb(end-H+1:end,1)= 0; ub(end-H+1:end,1) = inf; % Constraint for eta
+
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
     [z, ~, exitflag] = quadprog(F, f, Aineq, bineq, Aeq, beq, lb, ub, [], options);
@@ -186,7 +214,7 @@ function z = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     else
         disp('Constrained optimization failed.');
     end
-
-    % Extract optimal control action and slack variables
     
+    % Extract optimal control action and slack variables
+    u0=z(n*(H+1)+1);
 end    
