@@ -1,10 +1,9 @@
-
-% Initialization
+%% Initialization
 clear
 close all
 clc
 
-% Exercise 2: Implement closed-loop MPC controller (P4)
+%% Exercise 4: 
 
 % Load model
 MODEL = load('singleheater_model.mat');
@@ -30,7 +29,7 @@ Dx0 = Dx0Dy0(1:n);
 
 % Define parameters
 H = 100;   % Prediction horizon
-R = 0.1;    % Control weight
+R = 0.3;    % Control weight
 
 % Initial condition
 x0 = Dx0 + x_ss;
@@ -42,30 +41,25 @@ x_mpc(:, 1) = x0;
 
 % Initialize arrays to store output y
 y_mpc = zeros(1, N - 1);
-y_mpc(:, 1) = T1C(x0);
 
 t = nan(1, N);
 Dy = nan(1, N);
 Du = nan(1, N);
-Dx = nan(n, N);
-
-Dx(:,1) = x0 - x_ss;
-Dy(:,1) = y_mpc(:, 1) - y_ss;
 
 % Main loop for MPC control
 for k = 1:N - 1 
     % Solve MPC problem
     u = mpc_solve(x0, H, R, A, B, C, y_ss);
-    u_mpc(k) = u;
-    Du(:, k) = u - u_ss;
     
     % Apply control action to the plant
-    Dx(:, k+1) = h1(Dx(:, k), Du(:, k));
-    x_mpc(:, k+1) = Dx(:, k+1) + x_ss;
+    u_mpc(k) = u;
+    x_mpc(:, k+1) = h1(x_mpc(:, k), u);
     
     % Compute output y based on updated state x_mpc
-    Dy(:, k+1) = T1C(Dx(:, k+1));
-    y_mpc(k) = Dy(:, k) + y_ss;
+    y_mpc(k) = T1C(x_mpc(:, k));
+
+    Dy(:,k) = y_mpc(:,k) - y_ss;
+    Du(:,k) = u_mpc(:,k) - u_ss;
 
     % Update initial condition for next iteration
     x0 = x_mpc(:, k+1);
@@ -104,7 +98,7 @@ yline(100-u_ss,'r--')
 xlabel('Time [s]')
 ylabel('\Delta{u} [%]')
 
-function Du0 = mpc_solve(x0, H, R, A, B, C, y_ss)
+function u0 = mpc_solve(x0, H, R, A, B, C, y_ss)
     % Compute weight matrices
     % Q = transpose(C) * C;
     
@@ -126,7 +120,7 @@ function Du0 = mpc_solve(x0, H, R, A, B, C, y_ss)
     f = 2 * (x0' * Pi' * W - y_ref' * W); % Makes y tend to y_ss
     Aineq = []; bineq = [];
     Aeq = []; beq = [];
-    lb = ones(H, 1) * (0); ub = ones(H, 1)*(100);
+    lb = zeros(H, 1); ub = ones(H, 1)*100;
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
@@ -134,6 +128,6 @@ function Du0 = mpc_solve(x0, H, R, A, B, C, y_ss)
     K_RH = quadprog(F, f, Aineq, bineq, Aeq, beq, lb, ub, x0, options);
 
     % Extract first control action
-    Du0 = K_RH(1);
-    fprintf('control input: %f ', Du0);
+    u0 = K_RH(1);
+    fprintf('control input: %f ', u0);
 end
