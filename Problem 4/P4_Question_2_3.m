@@ -52,12 +52,12 @@ Dx = nan(n, N);
 Dx(:,1) = x_mpc(:, 1) - x_ss;
 Dy(:,1) = y_mpc(:, 1) - y_ss;
 
-z0 = zeros(209,1);
+
 % Main loop for MPC control
 for k = 1:N - 1 
     % Solve MPC problem
     z = mpc_solve(x0, H, R, A, B, C, y_ss);
-    Du(:,k) = z(190);
+    Du(:,k) = z((H+1)*n + 1);
     u_mpc(k) = Du(:,k) + u_ss;
 
     % u_mpc(k) = u;
@@ -111,35 +111,52 @@ ylabel('\Delta{u} [%]')
 
 function z = mpc_solve(x0, H, R, A, B, C, ref)
     % Compute the augmented matrices
+    n = 9;
     Q = C' * C;
-    Q_aug = blkdiag(Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q,Q);  % Important not to touch H 
-    Q_aug = [zeros(180,9),Q_aug];
-    Q_aug = [zeros(9,189);Q_aug;];
+
+    for i = 1:H
+        if(i==1)
+            Q_aug=Q;
+        else
+            Q_aug=blkdiag(Q_aug,Q);
+        end
+    end
+    Q_aug = [zeros(size(Q_aug,1),n),Q_aug];
+    Q_aug = [zeros(n,size(Q_aug,2));Q_aug];
     
     R_aug = R*eye(H,H); 
     
     F = 2 .* blkdiag(Q_aug,R_aug);
-    f = zeros(209,1);
+    f = zeros(size(F,2),1);
     
-    A_aug = blkdiag(A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A,A);  
-    zero_column = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)]'.*0;
-    zero_row = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)].*0;
-    A_aug = [A_aug, zero_column];
-    A_aug = [zero_row; A_aug];
+    for i = 1:H
+        if(i==1)
+            A_aug=A;
+        else
+            A_aug=blkdiag(A_aug,A);
+        end
+    end
+    A_aug = [A_aug, zeros(size(A_aug,1),n)];
+    A_aug = [zeros(n,size(A_aug,2)); A_aug];
+
+    for i = 1:H
+        if(i==1)
+            B_aug=B;
+        else
+            B_aug=blkdiag(B_aug,B);
+        end
+    end
+    B_aug = [zeros(n,size(B_aug,2));B_aug];
     
-    B_aug = blkdiag(B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B);
-    B_aug_aux = zeros(9,20);
-    B_aug = [B_aug_aux;B_aug];
-    
-    E = [eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9)]';
-   
-    Aeq = [A_aug - eye(189,189)  B_aug];
+    E = [eye(n,n);zeros(H*n,n)];
+
+    Aeq = [A_aug - eye(size(A_aug,1),size(A_aug,2)),  B_aug];
     beq = -E*x0;
     Aineq = []; bineq = [];
 
-    lb = zeros(209,1); ub = zeros(209,1);
-    lb(1:189,1) = -inf; ub(1:189,1)= inf;
-    lb(190:209,1)= 0; ub(190:209,1) = 70;  
+    lb = zeros(size(F,1),1); ub = zeros(size(F,1),1);
+    lb(1:((H+1)*n),1) = -inf; ub(1:((H+1)*n),1)= inf;
+    lb((((H+1)*n)+1):size(F,1),1)= -30; ub((((H+1)*n)+1):size(F,1),1) = 70;  
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
