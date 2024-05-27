@@ -141,8 +141,8 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     % Compute the augmented matrices
 
     Q = C' * C;
-    for i = 1:H
-        if(i==1)
+    for k = 1:H
+        if(k==1)
             Q_aug=Q;
         else
             Q_aug=blkdiag(Q_aug,Q);
@@ -156,8 +156,8 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     F = 2 .* blkdiag(Q_aug,R_aug,alpha*eye(H,H));
     f = zeros(size(F,2),1);
 
-    for i = 1:H
-        if(i==1)
+    for k = 1:H
+        if(k==1)
             A_aug=A;
         else
             A_aug=blkdiag(A_aug,A);
@@ -168,8 +168,8 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     A_aug = [A_aug, zeros(size(A_aug,1),n)];
     A_aug = [zeros(n,size(A_aug,2)); A_aug];
 
-    for i = 1:H
-        if(i==1)
+    for k = 1:H
+        if(k==1)
             B_aug=B;
         else
             B_aug=blkdiag(B_aug,B);
@@ -187,8 +187,8 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     g_aug = repmat(min([maxTemp-ref,0]),H,1);
     G_aug = eye(H,H);
 
-    for i = 1:H
-        if(i==1)
+    for k = 1:H
+        if(k==1)
             C_aug=C;
         else
             C_aug=blkdiag(C_aug,C);
