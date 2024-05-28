@@ -23,15 +23,16 @@ tclab;
 load('singleheater_model.mat','A','B','C','Ke','e_var','y_ss','u_ss','Ts');
 n = size(A,1);
 e_std = sqrt(e_var); % input disturbance standard deviation
+x_ss = [eye(n)-A; C]\[B*u_ss; y_ss];
 
 % tuning parameter
-de = 10;
-H = 20;
-R = 0.1;
+de = 1;
+H = 10;
+R = 0.01;
 alpha = 100;
 
 % Experiment parameters
-T = 300; % experiment duration [s]
+T = 4000; % experiment duration [s]
 N = T/Ts; % number of samples to collect
 
 % Kalman filter design
@@ -52,6 +53,7 @@ Dx0 = Dx0Dy0(1:n); % to initialize filter
 
 % Reference
 r = [50*ones(1,ceil(N/4)),40*ones(1,ceil(N/4)),60*ones(1,ceil(N/4)),45*ones(1,ceil(N/4))];
+%r = y_ss.*ones(1,N);
 
 % Real-time plot flag. If true, plots the input and measured temperature in
 % real time. If false, only plots at the end of the experiment and instead
@@ -66,11 +68,11 @@ end
 t = nan(1,N);
 u = zeros(1,N);
 y = zeros(1,N);
-Dy = nan(1,N);
-Du = nan(1,N);
+dy = nan(1,N);
+du = nan(1,N);
 xd_est = nan(n+1,N);
-Dy_error = nan(1,N);
-xd_est(:,1) = [Dx0; 0]; % Kalman filter initialization
+dy_error = nan(1,N);
+xd_est(:,1) = [Dx0; 0.1]; % Kalman filter initialization
 
 % String with date for saving results
 timestr = char(datetime('now','Format','yyMMdd_HHmmSS'));
@@ -81,6 +83,8 @@ disp('Temperature test started.')
 
 for k=1:N
     tic;
+    % Reference changes
+    ref = r(k);
 
     % Computes analog time
     t(k) = (k-1)*Ts;
@@ -89,31 +93,29 @@ for k=1:N
     y(1,k) = T1C();
 
     % Compute incremental variables
-    Dy(:,k) = y(:,k) - y_ss;
+    dy(:,k) = y(:,k) - ref;
 
     % Kalman filter correction step
-    % TO DO: xd_est(:,k) = xd_est(:,k) + L*(Dy(:,k) - Cd*xd_est(:,k));
-    xd_est(:,k) = xd_est(:,k) + L*(Dy(:,k) - Cd*xd_est(:,k));
-    Dy_error(:,k) = Dy(:,k) - Cd*xd_est(:,k);
+    % TO DO: xd_est(:,k) = xd_est(:,k) + L*(dy(:,k) - Cd*xd_est(:,k));
+    xd_est(:,k) = xd_est(:,k) + L*(dy(:,k) - Cd*xd_est(:,k));
+    dy_error(:,k) = dy(:,k) - Cd*xd_est(:,k);
 
     % Computes the control variable to apply
     % TO DO: [...] = mpc_solve(...)
-    % Reference changes
-    ref = r(k);
-
-    %Du(:,k)=mpc_solve(xd_est(1:n,k), H, R, A, B, C, ref, alpha);
-    Du(:,k)=0;
-    u(:,k) = Du(:,k) + u_ss;
+    du(:,k)=mpc_solve(xd_est(1:n,k), H, R, A, B, C, ref, alpha);
+    %du(:,k)=0;
+    u(:,k) = du(:,k) + u_ss;
 
     % Kalman filter prediction step
-    % TO DO: xd_est(:,k+1) = Ad*xd_est(:,k) + Bd*Du(:,k);
-    xd_est(:,k+1) = Ad*xd_est(:,k) + Bd*Du(:,k);
+    % TO DO: xd_est(:,k+1) = Ad*xd_est(:,k) + Bd*du(:,k);
+    xd_est(:,k+1) = Ad*xd_est(:,k) + Bd*du(:,k);
 
     % Applies the control variable to the plant
     h1(u(1,k));
 
     if rt_plot
         close all;
+        f1 = figure();
         % Plots results
         subplot(2,1,1), hold on, grid on   
         plot(t(1:k),y(1,1:k),'.','MarkerSize',10)
@@ -127,21 +129,23 @@ for k=1:N
         ylim([0 100]);
         drawnow;
         
-        figure();
+        f2 = figure();
+        hold on, grid on
         title('Estimation error over time');
-        plot(t(1:k),Dy_error(1:k));
-        stairs(t,zeros(size(t,2),1),'r--')
+        plot(t(1:k),dy_error(1:k));
+        stairs(t,zeros(size(t,2),1),'r--');
         xlabel('Time [s]')
         ylabel('y error [ºC]')
-        grid;
+        drawnow;
 
-        figure();
+        f3 = figure();
+        hold on, grid on
         title('Disturbance over time');
         plot(t(1:k),xd_est(end,1:k));
-        stairs(t,zeros(size(t,2),1),'r--')
+        stairs(t,zeros(size(t,2),1),'r--');
         xlabel('Time [s]')
         ylabel('disturbance')
-        grid;
+        drawnow;
 
     else
         fprintf('t = %d, y1 = %.1f C, y2 = %.1f C, u1 = %.1f, u2 = %.1f\n',t(k),y(1,k),y(2,k),u(1,k),u(2,k)) %#ok<UNRCH> 
@@ -165,7 +169,7 @@ led(0)
 disp('Temperature test complete.')
 
 if ~rt_plot
-    figure
+    f1=figure();
     subplot(2,1,1), hold on, grid on   
     plot(t(1:k),y(1,1:k),'.','MarkerSize',10)
     stairs(t,r,'r--')
@@ -176,13 +180,35 @@ if ~rt_plot
     xlabel('Time [s]')
     ylabel('u [%]')
     ylim([0 100]);
-end
+    drawnow;
 
+    f2 = figure();
+    hold on, grid on
+    title('Estimation error over time');
+    plot(t(1:k),dy_error(1:k));
+    stairs(t,zeros(size(t,2),1),'r--');
+    xlabel('Time [s]')
+    ylabel('y error [ºC]')
+    drawnow;
+
+    f3 = figure();
+    hold on, grid on
+    title('Disturbance over time');
+    plot(t(1:k),xd_est(end,1:k));
+    stairs(t,zeros(size(t,2),1),'r--');
+    xlabel('Time [s]')
+    ylabel('disturbance')
+    drawnow;
+
+end
+x_disturbance = xd_est(end,1:k);
 %--------------------------------------------------------------------------
 
 % Save figure and experiment data to file
-exportgraphics(gcf,['openloop_plot_',timestr,'.png'],'Resolution',300)
-save(['openloop_data_',timestr,'.mat'],'y','u','t');
+exportgraphics(f1,['openloop_plot_',timestr,'.png'],'Resolution',300)
+exportgraphics(f2,['openloop_error_plot_',timestr,'.png'],'Resolution',300)
+exportgraphics(f3,['openloop_disturbance_plot_',timestr,'.png'],'Resolution',300)
+save(['openloop_data_',timestr,'.mat'],'y','u','t',"dy_error","x_disturbance");
 
 %--------------------------------------------------------------------------
 % End of File
