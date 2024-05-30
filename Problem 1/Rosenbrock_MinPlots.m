@@ -7,8 +7,8 @@ xopt=fminunc(@Rosenbrock_function,x0,options)
 
 %% Compute the constrained minimum
 
-x0=[-1; 1];  %Intial estimate
-A = [1, 0];  %Constrain
+x0=[-1; 1];  %Initial estimate
+A = [1, 0];  %Constraint
 B = 0.5; 
 xoptconstr=fmincon(@Rosenbrock_function,x0,A,B)
 
@@ -53,7 +53,7 @@ set(gg,'Linewidth',1.5);
 gg=plot(xoptconstr(1),xoptconstr(2),'*r');
 set(gg,'Linewidth',1.5);
 
-%plots the constraint boundary
+% Plots the constraint boundary
 
 % z1c=[-2:0.1:0.5];
 % z2c=[2:-0.1:0.5];
@@ -71,7 +71,6 @@ gg = title('Level lines of the Rosenbrock function');
 set(gg,'FontSize',14);
 
 gg = legend('Level lines','Initial Estimate', 'Unconstrained Minimum', 'Constrained Minimum');
-
 
 hold off
 
