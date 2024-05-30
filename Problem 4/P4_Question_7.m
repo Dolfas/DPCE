@@ -37,7 +37,7 @@ de = 10; % tuning parameter
 Qed = blkdiag(Qe, de);
 
 % Simulation parameters
-T = 4000; % Experiment duration [s]
+T = 500; % Experiment duration [s]
 N = T/Ts; % Number of samples to collect
 
 % Initial conditions (start at ambient temperature, i.e. equilibrium for u = 0)
@@ -52,7 +52,7 @@ Dx_ref = pinv(C) * Dref;
 Du_ref = pinv(B) * (Dx_ref - A * Dx_ref);
 
 % Define parameters
-H = 30;   % Prediction horizon
+H = 20;   % Prediction horizon
 R = 0.01;    % Control weight
 alpha = 10;
 
@@ -178,10 +178,11 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
 
     maxTemp = 55;
 
-    n=size(A,1);
-    % Compute the augmented matrices
-
+    n=size(A,1); % Dimension of the state
+    
+    % Compute the Augmented Cost matrices
     Q = C' * C;
+
     for k = 1:H
         if(k==1)
             Q_aug=Q;
@@ -189,14 +190,18 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
             Q_aug=blkdiag(Q_aug,Q);
         end
     end
+
     Q_aug = [zeros(size(Q_aug,1),n),Q_aug];
     Q_aug = [zeros(n,size(Q_aug,2));Q_aug];
 
     R_aug = R*eye(H,H); 
 
-    F = 2 .* blkdiag(Q_aug,R_aug,alpha*eye(H,H));
+    
+    % Sparse Formulation functions 
+    F = 2 .* blkdiag(Q_aug,R_aug,alpha*eye(H,H)); 
     f = zeros(size(F,2),1);
 
+    % Augmented Dynamics matrices
     for k = 1:H
         if(k==1)
             A_aug=A;
@@ -204,8 +209,7 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
             A_aug=blkdiag(A_aug,A);
         end
     end
-    zero_column = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)]'.*0;
-    zero_row = [eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9),eye(9,9)].*0;
+
     A_aug = [A_aug, zeros(size(A_aug,1),n)];
     A_aug = [zeros(n,size(A_aug,2)); A_aug];
 
@@ -217,17 +221,7 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
         end
     end
     B_aug = [zeros(n,size(B_aug,2));B_aug];
-
-    E = [eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),eye(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9),zeros(9,9)]';
-    E = [eye(n,n);zeros(H*n,n)];
-
-    Aeq = [A_aug - eye(size(A_aug,1),size(A_aug,2)), B_aug];
-    Aeq = [Aeq, zeros(size(A_aug,1),H)]; % Change to Aeq
-    beq = -E*x0;
-
-    g_aug = repmat(min([maxTemp-ref,0]),H,1);
-    G_aug = eye(H,H);
-
+    
     for k = 1:H
         if(k==1)
             C_aug=C;
@@ -237,14 +231,24 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     end
     C_aug = [C_aug, zeros(size(C_aug,1),n)];
 
-
+    E = [eye(n,n);zeros(H*n,n)];
+    
+    % Equality constraint matrices 
+    Aeq = [A_aug - eye(size(A_aug,1),size(A_aug,2)), B_aug];
+    Aeq = [Aeq, zeros(size(A_aug,1),H)]; 
+    beq = -E*x0;
+    
+    % Inequality constraint matrices 
+    g_aug = repmat(min([maxTemp-ref,0]),H,1);
+    G_aug = eye(H,H);
 
     Aineq = [G_aug*C_aug, zeros(H,H), -eye(H,H)];
     bineq = g_aug; 
 
-    lb = -inf*ones(H*(n+2)+n,1); ub = inf*ones(H*(n+2)+n,1);   
-    lb(end-2*H+1:end-H,1)= -30; ub(end-2*H+1:end-H,1) = 68; 
-    lb(end-H+1:end,1)= 0; ub(end-H+1:end,1) = inf; % Constraint for eta
+    % Lower and Higher bounds for the different variables 
+    lb = -inf*ones(H*(n+2)+n,1); ub = inf*ones(H*(n+2)+n,1); % Bounds for the state
+    lb(end-2*H+1:end-H,1)= -30; ub(end-2*H+1:end-H,1) = 68;  % Bounds for the control action
+    lb(end-H+1:end,1)= 0; ub(end-H+1:end,1) = inf;           % Bounds for the eta
 
     % Set options to suppress quadprog output
     options = optimoptions('quadprog', 'Display', 'off');
@@ -255,7 +259,7 @@ function u0 = mpc_solve(x0, H, R, A, B, C, ref,alpha)
     else
         disp('Constrained optimization failed.');
     end
-
-    % Extract optimal control action and slack variables
-    u0 = z(n*(H+1)+1); 
+    
+    % Extract the optimal control action 
+    u0=z(n*(H+1)+1);
 end    
