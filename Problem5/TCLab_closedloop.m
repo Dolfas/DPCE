@@ -52,8 +52,8 @@ Dx0Dy0 = [eye(n)-A, zeros(n,1); C, -1]\[-B*u_ss; 0];
 Dx0 = Dx0Dy0(1:n); % to initialize filter
 
 % Reference
-r = [50*ones(1,ceil(N/4)),40*ones(1,ceil(N/4)),60*ones(1,ceil(N/4)),45*ones(1,ceil(N/4))];
-%r = y_ss.*ones(1,N);
+%r = [50*ones(1,ceil(N/4)),40*ones(1,ceil(N/4)),60*ones(1,ceil(N/4)),45*ones(1,ceil(N/4))];
+r = y_ss.*ones(1,N);
 
 % Real-time plot flag. If true, plots the input and measured temperature in
 % real time. If false, only plots at the end of the experiment and instead
@@ -102,8 +102,8 @@ for k=1:N
 
     % Computes the control variable to apply
     % TO DO: [...] = mpc_solve(...)
-    du(:,k)=mpc_solve(xd_est(1:n,k), H, R, A, B, C, ref, alpha);
-    %du(:,k)=0;
+    %du(:,k)=mpc_solve(xd_est(1:n,k), H, R, A, B, C, ref, alpha);
+    du(:,k)=0;
     u(:,k) = du(:,k) + u_ss;
 
     % Kalman filter prediction step
@@ -169,36 +169,38 @@ led(0)
 disp('Temperature test complete.')
 
 if ~rt_plot
-    f1=figure();
-    subplot(2,1,1), hold on, grid on   
-    plot(t(1:k),y(1,1:k),'.','MarkerSize',10)
-    stairs(t,r,'r--')
-    xlabel('Time [s]')
-    ylabel('y [°C]')
-    subplot(2,1,2), hold on, grid on   
-    stairs(t(1:k),u(1,1:k),'LineWidth',2)
-    xlabel('Time [s]')
-    ylabel('u [%]')
-    ylim([0 100]);
-    drawnow;
+    close all;
+        f1 = figure();
+        % Plots results
+        subplot(2,1,1), hold on, grid on   
+        plot(t(1:k),y(1,1:k),'.','MarkerSize',10)
+        stairs(t,r,'r--')
+        xlabel('Time [s]')
+        ylabel('y [°C]')
+        subplot(2,1,2), hold on, grid on   
+        stairs(t(1:k),u(1,1:k),'LineWidth',2)
+        xlabel('Time [s]')
+        ylabel('u [%]')
+        ylim([0 100]);
+        drawnow;
+        
+        f2 = figure();
+        hold on, grid on
+        title('Estimation error over time');
+        plot(t(1:k),dy_error(1:k));
+        stairs(t,zeros(size(t,2),1),'r--');
+        xlabel('Time [s]')
+        ylabel('y error [ºC]')
+        drawnow;
 
-    f2 = figure();
-    hold on, grid on
-    title('Estimation error over time');
-    plot(t(1:k),dy_error(1:k));
-    stairs(t,zeros(size(t,2),1),'r--');
-    xlabel('Time [s]')
-    ylabel('y error [ºC]')
-    drawnow;
-
-    f3 = figure();
-    hold on, grid on
-    title('Disturbance over time');
-    plot(t(1:k),xd_est(end,1:k));
-    stairs(t,zeros(size(t,2),1),'r--');
-    xlabel('Time [s]')
-    ylabel('disturbance')
-    drawnow;
+        f3 = figure();
+        hold on, grid on
+        title('Disturbance over time');
+        plot(t(1:k),xd_est(end,1:k));
+        stairs(t,zeros(size(t,2),1),'r--');
+        xlabel('Time [s]')
+        ylabel('disturbance')
+        drawnow;
 
 end
 x_disturbance = xd_est(end,1:k);
